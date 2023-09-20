@@ -26,7 +26,7 @@ async function fetchData(): Promise<PostData[]> {
         params: {
           categories: 22, //4
           _embed: 1,
-          per_page: 50,
+          per_page: 100,
           // orderby: 'ID', // Order by ID
           // order: 'DESC', // Descending order (latest first)
         },
@@ -73,9 +73,9 @@ export default function App() {
     pageNumber: {
       position: 'absolute',
       bottom: 10,
-      right: 10,
+      right: 20,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      borderRadius: 5,
+      borderRadius: 0,
       padding: 5,
     },
     pageNumberText: {
@@ -86,15 +86,26 @@ export default function App() {
       position: 'absolute',
       bottom: 10,
       left: 20,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      // backgroundColor: 'rgba(0, 0, 0, 0.5)',
       padding: 5,
-      borderRadius: 5,
+      borderRadius: 0,
     },
     dateText: {
-      color: 'white',
+      color: 'gray',
       fontSize: 16,
     },
   });
+
+  function formatDate(inputDate: string) : string {
+    const date = new Date(inputDate);
+    const MM = String(date.getMonth() + 1).padStart(2, '0'); // Month (0-based, add 1 for January)
+    const DD = String(date.getDate()).padStart(2, '0'); // Day
+    const YYYY = date.getFullYear(); // Year
+    const HH = String(date.getHours()).padStart(2, '0'); // Hours
+    const mm = String(date.getMinutes()).padStart(2, '0'); // Minutes
+  
+    return `${MM}-${DD}-${YYYY} ${HH}:${mm}`;
+  }
 
   function removeText(inputText: string, stringsToRemove: string[]): string {
     const escapedStrings = stringsToRemove.map((str) =>
@@ -150,14 +161,16 @@ export default function App() {
           />
         )}
         <Text style={styles.title}>{he.decode(title?.rendered || '')} </Text>
-        <ScrollView>
+        {/* <ScrollView> */}
           <Text style={styles.content}>
             {removeHtmlTagsAndBr(content?.rendered || '')}
-            {console.log(removeHtmlTagsAndBr(content?.rendered || ''))}
+            {/* {console.log(removeHtmlTagsAndBr(content?.rendered || ''))} */}
+            
           </Text>
-        </ScrollView>
+        {/* </ScrollView> */}
         <View style={styles.dateOverlay}>
-          <Text style={styles.dateText}>{date}</Text>
+          <Text style={styles.dateText}>{formatDate(date)}</Text>
+          {/* {console.log(date)} */}
         </View>
       </View>
     );
