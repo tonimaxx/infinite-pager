@@ -24,9 +24,11 @@ async function fetchData(): Promise<PostData[]> {
       'https://datatogo.org/wp-json/wp/v2/posts',
       {
         params: {
-          categories: 4,
+          categories: 22, //4
           _embed: 1,
           per_page: 50,
+          // orderby: 'ID', // Order by ID
+          // order: 'DESC', // Descending order (latest first)
         },
       }
     );
@@ -94,10 +96,20 @@ export default function App() {
     },
   });
 
+  function removeText(inputText: string, stringsToRemove: string[]): string {
+    const escapedStrings = stringsToRemove.map((str) =>
+      str.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')
+    );
+    const regex = new RegExp(escapedStrings.join('|'), 'g');
+    return inputText.replace(regex, '').trim();
+  }
+
   function removeHtmlTagsAndBr(input: string): string {
     const withoutHtml = input.replace(/<[^>]*>/g, '');
     const withNewLines = withoutHtml.replace(/<br\s*\/?>/g, '\n');
-    return he.decode(withNewLines);
+    const withoutCurlyBraces = withNewLines.replace(/\{[^}]*\}/g, '');
+    const withoutText = removeText(withoutCurlyBraces, ["Source link"]);
+    return he.decode(withoutText); // Return the decoded text without the specified text
   }
 
   const renderPage = useCallback(({ index }: { index: number }) => {
@@ -141,6 +153,7 @@ export default function App() {
         <ScrollView>
           <Text style={styles.content}>
             {removeHtmlTagsAndBr(content?.rendered || '')}
+            {console.log(removeHtmlTagsAndBr(content?.rendered || ''))}
           </Text>
         </ScrollView>
         <View style={styles.dateOverlay}>
