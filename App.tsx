@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
-import { Text, View, StyleSheet, Image } from 'react-native';
+import { Text, View, StyleSheet, Image, ScrollView } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import InfinitePager, { Preset } from 'react-native-infinite-pager';
 import Axios, { AxiosResponse } from 'axios';
@@ -24,7 +24,7 @@ async function fetchData(): Promise<PostData[]> {
       'https://datatogo.org/wp-json/wp/v2/posts',
       {
         params: {
-          categories: 12,
+          categories: 4,
           _embed: 1,
           per_page: 50,
         },
@@ -46,6 +46,7 @@ export default function App() {
   const [preset, setPreset] = useState<Preset>(Preset.SLIDE);
   const pagerRef = useRef<InfinitePager | null>(null);
   const [fetchedData, setFetchedData] = useState<PostData[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(0);
 
   useEffect(() => {
     fetchData().then((data) => setFetchedData(data));
@@ -55,22 +56,48 @@ export default function App() {
     flex: { flex: 1 },
     title: {
       color: 'white',
-      fontSize: 30,
+      fontSize: 25,
       fontWeight: 'bold',
-      padding: 10,
+      marginHorizontal: 20,
+      textAlign: 'left',
     },
     content: {
       color: 'white',
+      fontSize: 18,
+      margin: 20,
+      textAlign: 'left',
+    },
+    topImage: { marginBottom: 20, width: '100%', aspectRatio: 4 / 3 },
+    pageNumber: {
+      position: 'absolute',
+      bottom: 10,
+      right: 10,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      borderRadius: 5,
+      padding: 5,
+    },
+    pageNumberText: {
+      color: 'white',
       fontSize: 16,
-      padding: 10,
+    },
+    dateOverlay: {
+      position: 'absolute',
+      bottom: 10,
+      left: 20,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      padding: 5,
+      borderRadius: 5,
+    },
+    dateText: {
+      color: 'white',
+      fontSize: 16,
     },
   });
 
-  // Function to remove HTML tags and replace <br> with new lines
   function removeHtmlTagsAndBr(input: string): string {
-    const withoutHtml = input.replace(/<[^>]*>/g, ''); // Remove HTML tags
-    const withNewLines = withoutHtml.replace(/<br\s*\/?>/g, '\n'); // Replace <br> with new lines
-    return he.decode(withNewLines); // Decode HTML entities
+    const withoutHtml = input.replace(/<[^>]*>/g, '');
+    const withNewLines = withoutHtml.replace(/<br\s*\/?>/g, '\n');
+    return he.decode(withNewLines);
   }
 
   const renderPage = useCallback(({ index }: { index: number }) => {
@@ -79,10 +106,13 @@ export default function App() {
     const itemData = fetchedData[index];
 
     if (!itemData) {
-      return null;
+      // Return an empty View for pages without data
+      return (
+        <View key={index} style={[styles.flex, { backgroundColor: bgColor }]} />
+      );
     }
 
-    const { title, content } = itemData;
+    const { title, content, date } = itemData;
     const imgURL =
       itemData?._embedded?.['wp:featuredmedia']?.[0]?.media_details?.sizes?.medium
         ?.source_url || itemData?._embedded?.['wp:featuredmedia']?.[0]?.media_details?.sizes?.crawlomatic_preview_image
@@ -94,29 +124,31 @@ export default function App() {
         style={[
           styles.flex,
           {
-            alignItems: 'center',
             justifyContent: 'flex-start',
             backgroundColor: bgColor,
             paddingTop: 0,
+            alignItems: 'flex-start',
           },
         ]}
       >
         {imgURL && (
           <Image
             source={{ uri: imgURL }}
-            style={{ width: '100%', aspectRatio: 4 / 3 }}
+            style={styles.topImage}
           />
         )}
-        <Text style={styles.title}>{he.decode(title?.rendered || '')}</Text>
-        <Text style={styles.content}>
-          {removeHtmlTagsAndBr(content?.rendered || '')}
-        </Text>
-        <Text style={{ color: 'white', fontSize: 30, fontWeight: 'bold' }}>
-          Toni {index}
-        </Text>
+        <Text style={styles.title}>{he.decode(title?.rendered || '')} </Text>
+        <ScrollView>
+          <Text style={styles.content}>
+            {removeHtmlTagsAndBr(content?.rendered || '')}
+          </Text>
+        </ScrollView>
+        <View style={styles.dateOverlay}>
+          <Text style={styles.dateText}>{date}</Text>
+        </View>
       </View>
     );
-  }, [fetchedData]);
+  }, [fetchedData, currentPage]);
 
   return (
     <GestureHandlerRootView
@@ -130,7 +162,13 @@ export default function App() {
         pageWrapperStyle={styles.flex}
         preset={preset}
         pageBuffer={4}
+        onPageChange={(pageIndex) => setCurrentPage(pageIndex)}
+        minIndex={0} // Set minimum index to 0
+        maxIndex={fetchedData.length - 1} // Set maximum index to the last available data index
       />
+      <View style={styles.pageNumber}>
+        <Text style={styles.pageNumberText}>{currentPage + 1}/{fetchedData.length}</Text>
+      </View>
     </GestureHandlerRootView>
   );
 }
