@@ -24,9 +24,9 @@ async function fetchData(): Promise<PostData[]> {
       'https://datatogo.org/wp-json/wp/v2/posts',
       {
         params: {
-          categories: 22, //4
+          categories: 23, //22, 4
           _embed: 1,
-          per_page: 100,
+          per_page: 50,
           // orderby: 'ID', // Order by ID
           // order: 'DESC', // Descending order (latest first)
         },
@@ -123,6 +123,78 @@ export default function App() {
     return he.decode(withoutText); // Return the decoded text without the specified text
   }
 
+
+  // HERE !!!!
+
+  function parseAndValidateJSONFromHTML(inputHTML: string): Record<string, any> | null {
+    // Remove HTML tags and decode HTML entities
+    const cleanedHTML = inputHTML.replace(/<[^>]*>/g, '');
+    const decodedText = he.decode(cleanedHTML);
+    const validJSON = decodedText.replace(/“|”/g, '"');
+
+    // Replace curly double quotes with straight double quotes
+    // const jsonText = decodedText.replace(/“/g, '"').replace(/”/g, '"');
+
+    // console.log(`------ cleanedHTML ${cleanedHTML}`);
+    // console.log(`------ decodedText ${decodedText}`);
+    // console.log(`------ validJSON ${validJSON}`);
+
+    // const jsonObject = JSON.parse(validJSON);
+
+    try {
+      const jsonObject = JSON.parse(validJSON);
+      console.log(jsonObject);
+      return jsonObject;
+    } catch (error) {
+      return {}
+    }
+
+}
+
+function xdomainOnly(text: string): string {
+  // Use a regular expression to extract the domain from the URL
+  const domainRegex = /^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i;
+  const match = text.match(domainRegex);
+
+  if (match && match[1]) {
+    return match[1];
+  } else {
+    // Return an empty string if the input is not a valid URL
+    return '';
+  }
+}
+
+function domainOnly(text: string): string {
+  // Check if the 'text' argument is defined
+  if (typeof text !== 'undefined') {
+    // Use a regular expression to extract the domain from the URL
+    const domainRegex = /^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i;
+    const match = text.match(domainRegex);
+
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  // Return an empty string if the input is not a valid URL or 'text' is undefined
+  return '';
+}
+
+
+
+
+
+// Function to decode HTML entities
+function decodeHTMLEntities(text: string): string {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+}
+
+
+
+
+
   const renderPage = useCallback(({ index }: { index: number }) => {
     const emoji = jsonColor[Object.keys(jsonColor)[index]];
     const bgColor = getColor(index);
@@ -140,6 +212,12 @@ export default function App() {
       itemData?._embedded?.['wp:featuredmedia']?.[0]?.media_details?.sizes?.medium
         ?.source_url || itemData?._embedded?.['wp:featuredmedia']?.[0]?.media_details?.sizes?.crawlomatic_preview_image
         ?.source_url;
+    const jsonData = JSON.stringify(parseAndValidateJSONFromHTML(content?.rendered || ''), null, 2);
+    const thisJSON = parseAndValidateJSONFromHTML(content?.rendered);
+    const jsonContent = thisJSON.content;
+    // const jsonURL = domainOnly(thisJSON.url);
+    const jsonURL = domainOnly(thisJSON.url) ?? 'No text available';
+    // const json
 
     return (
       <View
@@ -160,16 +238,25 @@ export default function App() {
             style={styles.topImage}
           />
         )}
-        <Text style={styles.title}>{he.decode(title?.rendered || '')} </Text>
-        {/* <ScrollView> */}
+        <Text style={styles.title}>{he.decode(title?.rendered || '')} ({thisJSON.sentiment > 0 && "+"}{thisJSON.sentiment})</Text>
+        
           <Text style={styles.content}>
-            {removeHtmlTagsAndBr(content?.rendered || '')}
-            {/* {console.log(removeHtmlTagsAndBr(content?.rendered || ''))} */}
+            {jsonContent}
+          {/* {jsonData && jsonData} */}
+          
+            {/* {removeHtmlTagsAndBr(content?.rendered || '')} */}
+            {/* {parseAndValidateJSONFromHTML(content?.rendered || '')} */}
+            {/* {typeof(parseAndValidateJSONFromHTML(content?.rendered || ''))} */}
+            {/* {JSON.stringify((parseAndValidateJSONFromHTML(content?.rendered || '')), null, 2)} */}
+            {/* {(content?.rendered || '')} */}
+            {/* {console.log(parseAndValidateJSONFromHTML(content?.rendered || ''))} */}
             
           </Text>
-        {/* </ScrollView> */}
+       
         <View style={styles.dateOverlay}>
-          <Text style={styles.dateText}>{formatDate(date)}</Text>
+          <Text style={styles.dateText}>{jsonURL}</Text>
+        {/* <Text style={styles.dateText}>{(thisJSON.date)}</Text> */}
+          <Text style={styles.dateText} >{formatDate(date)}</Text>
           {/* {console.log(date)} */}
         </View>
       </View>
