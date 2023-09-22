@@ -24,7 +24,7 @@ async function fetchData(): Promise<PostData[]> {
       'https://datatogo.org/wp-json/wp/v2/posts',
       {
         params: {
-          categories: 23, //22, 4
+          categories: 24, // 23 22, 4
           _embed: 1,
           per_page: 50,
           // orderby: 'ID', // Order by ID
@@ -69,6 +69,32 @@ export default function App() {
       margin: 20,
       textAlign: 'left',
     },
+    metaContent: {
+      color: 'white',
+      fontSize: 14,      
+      textAlign: 'left',
+    },
+    metaStock: {color: 'white',
+    fontSize: 18,      
+    textAlign: 'left',
+    marginVertical:10
+  },
+    metaContainer: {
+      // flex: 1,
+      justifyContent: 'center', // Center vertically
+      alignItems: 'center', // Center horizontally
+      marginBottom: 40,
+      marginTop: -70,
+      backgroundColor:"green",
+      marginLeft:20,
+      width:50,
+      borderTopRightRadius:0
+    },
+    metaSentiment: {
+      color: 'white',
+      fontSize: 30,
+      textAlign: 'left',
+    },
     topImage: { marginBottom: 20, width: '100%', aspectRatio: 4 / 3 },
     pageNumber: {
       position: 'absolute',
@@ -88,6 +114,7 @@ export default function App() {
       left: 20,
       // backgroundColor: 'rgba(0, 0, 0, 0.5)',
       padding: 5,
+      paddingLeft:-5,
       borderRadius: 0,
     },
     dateText: {
@@ -128,41 +155,54 @@ export default function App() {
 
   function parseAndValidateJSONFromHTML(inputHTML: string): Record<string, any> | null {
     // Remove HTML tags and decode HTML entities
+    // &#8220;blue,&#8221;
+    
+    
+    // jsonObject.content = jsonObject.content.replace(/&ldquo;/g, '"').replace(/&rdquo;/g, '"');
     const cleanedHTML = inputHTML.replace(/<[^>]*>/g, '');
     const decodedText = he.decode(cleanedHTML);
     const validJSON = decodedText.replace(/“|”/g, '"');
 
-    // Replace curly double quotes with straight double quotes
-    // const jsonText = decodedText.replace(/“/g, '"').replace(/”/g, '"');
 
     // console.log(`------ cleanedHTML ${cleanedHTML}`);
     // console.log(`------ decodedText ${decodedText}`);
-    // console.log(`------ validJSON ${validJSON}`);
+    console.log(`------ validJSON ${validJSON}`);
 
-    // const jsonObject = JSON.parse(validJSON);
-
-    try {
-      const jsonObject = JSON.parse(validJSON);
-      console.log(jsonObject);
-      return jsonObject;
-    } catch (error) {
-      return {}
+    function fixInvalidJsonString(inputString: string): string | null {
+      try {
+        // Find and escape double quotes within the "content" field
+        const escapedString = inputString.replace(/"content": "([^"]*)"/g, (match, content) => {
+          const escapedContent = content.replace(/"/g, '\\"');
+          return `"content": "${escapedContent}"`;
+        });
+    
+        // Attempt to parse the corrected string as JSON
+        JSON.parse(escapedString);
+    
+        return escapedString;
+      } catch (error) {
+        // If parsing fails, return null
+        return null;
+      }
     }
 
-}
+    const fixedJSON = fixInvalidJsonString(validJSON);
 
-function xdomainOnly(text: string): string {
-  // Use a regular expression to extract the domain from the URL
-  const domainRegex = /^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i;
-  const match = text.match(domainRegex);
+    console.log(`------ fixedJSON ${fixedJSON}`);
 
-  if (match && match[1]) {
-    return match[1];
-  } else {
-    // Return an empty string if the input is not a valid URL
-    return '';
+    
+
+      try {
+        const jsonObject = JSON.parse(validJSON);
+        console.log(jsonObject);
+        return jsonObject;
+      } catch (error) {
+        return {}
+      }
+
   }
-}
+
+
 
 function domainOnly(text: string): string {
   // Check if the 'text' argument is defined
@@ -217,6 +257,7 @@ function decodeHTMLEntities(text: string): string {
     const jsonContent = thisJSON.content;
     // const jsonURL = domainOnly(thisJSON.url);
     const jsonURL = domainOnly(thisJSON.url) ?? 'No text available';
+    const jsonSentiment = thisJSON.sentiment;
     // const json
 
     return (
@@ -238,7 +279,18 @@ function decodeHTMLEntities(text: string): string {
             style={styles.topImage}
           />
         )}
-        <Text style={styles.title}>{he.decode(title?.rendered || '')} ({thisJSON.sentiment > 0 && "+"}{thisJSON.sentiment})</Text>
+
+        
+        <View style = {styles.metaContainer}>
+          <Text style={[
+            styles.metaSentiment,
+            jsonSentiment < 0 ? { backgroundColor: 'red', width:50, textAlign:"center" } : null
+            ]}>{jsonSentiment || 0} 
+          </Text>
+        </View>
+        
+
+        <Text style={styles.title}>{he.decode(title?.rendered || '')}</Text>
         
           <Text style={styles.content}>
             {jsonContent}
@@ -252,6 +304,16 @@ function decodeHTMLEntities(text: string): string {
             {/* {console.log(parseAndValidateJSONFromHTML(content?.rendered || ''))} */}
             
           </Text>
+          <View style={{marginHorizontal:20}}>
+          {/* { thisJSON.relate_stock && <Text style={styles.metaContent}>Relate Stock: {thisJSON.relate_stock}</Text> } */}
+          { thisJSON.stocks && <Text style={styles.metaContent}>Stocks: {thisJSON.stocks}</Text> }
+          { thisJSON.segment && <Text style={styles.metaContent}>Segment: {thisJSON.segment}</Text> }
+          {/* { thisJSON.sentiment && <Text style={styles.metaContent}>Segment: {thisJSON.segment}</Text> } */}
+          <Text style={styles.metaContent}>Keywords: {thisJSON.keywords}</Text>
+          
+          {/* { thisJSON.sentiment && <Text style={styles.sentiment}>Sentiment: {thisJSON.sentiment}</Text> } */}
+          {/* {thisJSON.sentiment > 0 && "+"}{thisJSON.sentiment} */}
+          </View>
        
         <View style={styles.dateOverlay}>
           <Text style={styles.dateText}>{jsonURL}</Text>
